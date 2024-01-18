@@ -1,2 +1,8 @@
-Flask == 2.0.1
-Werkzeug==2.2.2
+flask
+pandas
+numpy
+scikit-learn
+tensorflow
+os
+requests
+dotenv
