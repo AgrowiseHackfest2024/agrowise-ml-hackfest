@@ -56,7 +56,6 @@ collab_df = pickle.load(open(folder + 'collab_df.pkl', 'rb'))
 user_id_encoded = pickle.load(open(folder + 'user_id_encoded.pkl', 'rb'))
 farmer_id_encoded = pickle.load(open(folder + 'farmer_id_encoded.pkl', 'rb'))
 model = tf.keras.models.load_model(folder + '/model_collab')
-print(model.summary())
 # ===================================================
 
 # ================ENDPOINT===========================
@@ -108,5 +107,5 @@ def collab_recommendation():
 
 # ================MAIN===============================
 if __name__ == "__main__":
-  app.run(host='127.0.0.1', port=5000)
+  app.run(host='127.0.0.1')
 # ===================================================
