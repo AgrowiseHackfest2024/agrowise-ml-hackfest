@@ -6,6 +6,8 @@ import pickle
 from cb_recommendation import get_cb_recommendations
 
 # ================FUNCTION===================
+
+
 def get_collab_recommendations(user_id, items, collab_df, model, user_id_encoded, farmer_id_encoded, k=5):
   farmer_reviewed_by_user = collab_df[collab_df['user_id'] == user_id]
   farmer_not_reviewed = items[~items['farmer_id'].isin(
@@ -33,13 +35,16 @@ def get_collab_recommendations(user_id, items, collab_df, model, user_id_encoded
 
   return recommended_farmer
 
+
 # ================INIT FLASK========================
 app = Flask(__name__)
 
+
 @app.route("/")
 def hello_world():
-    return "Hello, World!"
+  return "Hello, World!"
 # ===================================================
+
 
 # ================LOAD MODEL=========================
 folder = './model/'
@@ -55,44 +60,53 @@ print(model.summary())
 # ===================================================
 
 # ================ENDPOINT===========================
+
+
 @app.route("/recommendation/cb", methods=["POST"])
 def cb_recommendation():
-    data = request.json
-    farmer_id = data['farmer_id']
-    k = data.get('k', None)  # Use get method to get the value of 'k', default to None if not present
+  data = request.json
+  farmer_id = data['farmer_id']
+  # Use get method to get the value of 'k', default to None if not present
+  k = data.get('k', None)
 
-    if farmer_id not in cosine_sim_df.index:
-        return json.dumps({'success': False, 'message': 'Farmer not found!', 'data': []})
+  if k is None or not (1 <= k <= len(cosine_sim_df.columns)):
+    k = len(cosine_sim_df.columns)
 
-    if k is None or not (1 <= k <= len(cosine_sim_df.columns)):
-        k = len(cosine_sim_df.columns)
+  if farmer_id not in cosine_sim_df.index:
+    result_json = cb_df.head(k).to_json(orient="records")
+    return json.dumps({'success': False, 'message': 'Farmer not found!', 'data': json.loads(result_json)})
 
-    result = get_cb_recommendations(farmer_id, cosine_sim_df, cb_df, k)
+  result = get_cb_recommendations(farmer_id, cosine_sim_df, cb_df, k)
 
-    result_json = result.to_json(orient="records")
+  result_json = result.to_json(orient="records")
 
-    return json.dumps({'success': True, 'message': 'Success retrieve content based filtering data!', 'data': json.loads(result_json)})
+  return json.dumps({'success': True, 'message': 'Success retrieve content based filtering data!', 'data': json.loads(result_json)})
+
 
 @app.route("/recommendation/collab", methods=["POST"])
 def collab_recommendation():
-    data = request.json
-    user_id = data['user_id']
-    k = data.get('k', None)  # Use get method to get the value of 'k', default to None if not present
+  data = request.json
+  user_id = data['user_id']
+  # Use get method to get the value of 'k', default to None if not present
+  k = data.get('k', None)
 
-    if user_id not in user_id_encoded.keys():
-        return json.dumps({'success': False, 'message': 'User not found!', 'data': []})
+  if k is None or not (1 <= k <= len(farmer_id_encoded)):
+    k = len(farmer_id_encoded)
 
-    if k is None or not (1 <= k <= len(farmer_id_encoded)):
-        k = len(farmer_id_encoded)
+  if user_id not in user_id_encoded.keys():
+    result_json = cb_df.head(k).to_json(orient="records")
+    return json.dumps({'success': False, 'message': 'User not found!', 'data': json.loads(result_json)})
 
-    result = get_collab_recommendations(user_id=user_id, items=cb_df, collab_df=collab_df, model=model, user_id_encoded=user_id_encoded, farmer_id_encoded=farmer_id_encoded, k=k)
+  result = get_collab_recommendations(user_id=user_id, items=cb_df, collab_df=collab_df,
+                                      model=model, user_id_encoded=user_id_encoded, farmer_id_encoded=farmer_id_encoded, k=k)
 
-    result_json = result.to_json(orient="records")
+  result_json = result.to_json(orient="records")
 
-    return json.dumps({'success': True, 'message': 'Success retrieve collaborative filtering data!', 'data': json.loads(result_json)})
+  return json.dumps({'success': True, 'message': 'Success retrieve collaborative filtering data!', 'data': json.loads(result_json)})
 # ===================================================
+
 
 # ================MAIN===============================
 if __name__ == "__main__":
-    app.run(host='127.0.0.1', port=5000)
+  app.run(host='127.0.0.1', port=5000)
 # ===================================================
