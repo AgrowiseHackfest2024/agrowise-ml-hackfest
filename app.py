@@ -4,7 +4,34 @@ import tensorflow as tf
 from flask import Flask, request
 import pickle
 from cb_recommendation import get_cb_recommendations
-from collab_recommendation import get_collab_recommendations
+
+# ================FUNCTION===================
+def get_collab_recommendations(user_id, items, collab_df, model, user_id_encoded, farmer_id_encoded, k=5):
+  farmer_reviewed_by_user = collab_df[collab_df['user_id'] == user_id]
+  farmer_not_reviewed = items[~items['farmer_id'].isin(
+    farmer_reviewed_by_user['farmer_id'])]
+
+  farmer_not_reviewed = list(set(farmer_not_reviewed['farmer_id'].tolist(
+  )).intersection(set(farmer_id_encoded.keys())))
+
+  farmer_not_reviewed = [[user_id_encoded.get(user_id), farmer_id_encoded.get(
+    farmer_id)] for farmer_id in farmer_not_reviewed]
+
+  user_farmer_array = np.array(farmer_not_reviewed)
+  user_farmer_array = tf.convert_to_tensor(
+    user_farmer_array, dtype=tf.int64)  # Convert to tf.int64
+
+  ratings = model.predict(user_farmer_array).flatten()
+
+  top_ratings_indices = ratings.argsort()[-k:][::-1]
+
+  farmer_encoded = {i: x for i, x in enumerate(farmer_id_encoded)}
+  recommended_farmer_ids = [farmer_encoded.get(
+    farmer_not_reviewed[x][1]) for x in top_ratings_indices]
+
+  recommended_farmer = items[items['farmer_id'].isin(recommended_farmer_ids)]
+
+  return recommended_farmer
 
 # ================INIT FLASK========================
 app = Flask(__name__)
@@ -58,7 +85,7 @@ def collab_recommendation():
     if k is None or not (1 <= k <= len(farmer_id_encoded)):
         k = len(farmer_id_encoded)
 
-    result = get_collab_recommendations(user_id, cb_df, collab_df, model, user_id_encoded, farmer_id_encoded, k)
+    result = get_collab_recommendations(user_id=user_id, items=cb_df, collab_df=collab_df, model=model, user_id_encoded=user_id_encoded, farmer_id_encoded=farmer_id_encoded, k=k)
 
     result_json = result.to_json(orient="records")
 
